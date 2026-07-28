@@ -1,0 +1,124 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "White Language",
+  "scopeName": "source.whitelang",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#characters"
+    },
+    {
+      "include": "#annotations"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.whitelang",
+          "begin": "//",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.whitelang"
+            }
+          },
+          "end": "$"
+        },
+        {
+          "name": "comment.block.whitelang",
+          "begin": "/\\*",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.begin.whitelang"
+            }
+          },
+          "end": "\\*/",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.end.whitelang"
+            }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.whitelang",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.whitelang"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.whitelang"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.whitelang",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "characters": {
+      "name": "string.quoted.single.whitelang",
+      "begin": "'",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.whitelang"
+        }
+      },
+      "end": "'",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.whitelang"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.whitelang",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "annotations": {
+      "name": "entity.name.tag.annotation.whitelang",
+      "match": "@[A-Za-z_][A-Za-z0-9_]*"
+    },
+    "keywords": {
+      "name": "keyword.control.whitelang",
+      "match": "\\b(?:let|const|if|else|while|for|break|continue|func|method|return|struct|class|interface|enum|with|this|self|super|ptr|ref|deref|null|nullptr|is|extern|from|import|as|catch|throw|in|true|false)\\b"
+    },
+    "types": {
+      "name": "support.type.whitelang",
+      "match": "\\b(?:Int|Int8|Int16|Int32|Int64|Int128|UInt8|UInt16|UInt32|UInt64|UInt128|IntSize|UIntSize|Long|Byte|Float|Float32|Float64|Bool|String|Char|Void|AnyPtr|Auto|Array|Vector|Dict|Function|Method|Struct|Class|Enum)\\b"
+    },
+    "numbers": {
+      "name": "constant.numeric.whitelang",
+      "match": "(?<![A-Za-z0-9_])(?:0[xX][0-9A-Fa-f](?:[0-9A-Fa-f_]*[0-9A-Fa-f])?|0[bB][01](?:[01_]*[01])?|0[oO][0-7](?:[0-7_]*[0-7])?|(?:[0-9](?:[0-9_]*[0-9])?\\.[0-9_]*|\\.[0-9](?:[0-9_]*[0-9])?)[fF]?|[0-9](?:[0-9_]*[0-9])?(?:[uU](?:[lL]{1,2})?|[lL]{1,2})?)(?![A-Za-z0-9_])"
+    },
+    "operators": {
+      "name": "keyword.operator.whitelang",
+      "match": "\\*\\*=|<<=|>>=|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|==|!=|>=|<=|&&|\\|\\||\\*\\*|\\+\\+|--|<<|>>|->|[=><!&|^~+*/%?-]"
+    }
+  }
+}

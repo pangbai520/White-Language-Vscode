@@ -1,0 +1,10 @@
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+
+node_modules/
+out/
+*.tsbuildinfo
+*.vsix

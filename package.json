@@ -1,0 +1,173 @@
+{
+  "name": "whitelanguage",
+  "displayName": "White Language",
+  "description": "VSCode Extension for White Language, powered by wlls.",
+  "version": "0.0.1",
+  "publisher": "whitelang-dev",
+  "icon": "icon.png",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "white",
+    "whitelang",
+    "whitelanguage"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:whitelang",
+    "onCommand:whitelanguage.runFile"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "whitelanguage.runFile",
+        "title": "Run White Language File",
+        "category": "White Language",
+        "icon": "$(play)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "whitelanguage.runFile",
+          "when": "editorLangId == whitelang",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "whitelang",
+        "aliases": [
+          "White Language",
+          "WhiteLang"
+        ],
+        "extensions": [
+          ".wl"
+        ],
+        "icon": {
+          "light": "./resources/light.svg",
+          "dark": "./resources/dark.svg"
+        },
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "whitelang",
+        "scopeName": "source.whitelang",
+        "path": "./syntaxes/whitelang.tmLanguage.json"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "whitelang",
+        "scopes": {
+          "keyword": [
+            "keyword.control.whitelang"
+          ],
+          "type": [
+            "support.type.whitelang"
+          ],
+          "class": [
+            "entity.name.type.class.whitelang"
+          ],
+          "struct": [
+            "entity.name.type.struct.whitelang"
+          ],
+          "interface": [
+            "entity.name.type.interface.whitelang"
+          ],
+          "enum": [
+            "entity.name.type.enum.whitelang"
+          ],
+          "enumMember": [
+            "constant.other.enum.whitelang"
+          ],
+          "function": [
+            "entity.name.function.whitelang"
+          ],
+          "method": [
+            "entity.name.function.member.whitelang"
+          ],
+          "parameter": [
+            "variable.parameter.whitelang"
+          ],
+          "variable": [
+            "variable.other.whitelang"
+          ],
+          "property": [
+            "variable.other.property.whitelang"
+          ],
+          "string": [
+            "string.quoted.whitelang"
+          ],
+          "number": [
+            "constant.numeric.whitelang"
+          ],
+          "comment": [
+            "comment.whitelang"
+          ],
+          "operator": [
+            "keyword.operator.whitelang"
+          ],
+          "annotation": [
+            "entity.name.tag.annotation.whitelang"
+          ]
+        }
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "annotation",
+        "superType": "type",
+        "description": "A White Language compiler annotation."
+      }
+    ],
+    "configurationDefaults": {
+      "[whitelang]": {
+        "editor.semanticHighlighting.enabled": true
+      }
+    },
+    "configuration": {
+      "title": "White Language",
+      "properties": {
+        "whitelanguage.server.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Path to the wlls executable. When empty, the extension uses WL_PATH/bin/wlls."
+        },
+        "whitelanguage.server.trace": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "description": "Log wlls protocol traffic in the White Language output channel."
+        },
+        "whitelanguage.compiler.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Path to the wlc executable. When empty, the extension uses WL_PATH/bin/wlc."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node ./scripts/clean.mjs",
+    "compile": "tsc -p .",
+    "check": "npm run compile && node --test ./test",
+    "package": "npm run check && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.15",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.6.2",
+    "typescript": "^5.5.4"
+  }
+}
