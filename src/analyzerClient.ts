@@ -18,6 +18,8 @@ interface PendingRequest {
 }
 
 export class AnalyzerClient implements vscode.Disposable {
+  private readonly stopEmitter = new vscode.EventEmitter<void>();
+  readonly onDidStop = this.stopEmitter.event;
   private process: ChildProcessWithoutNullStreams | undefined;
   private nextId = 1;
   private readonly pending = new Map<number, PendingRequest>();
@@ -56,6 +58,7 @@ export class AnalyzerClient implements vscode.Disposable {
       this.documentVersions.clear();
       this.documentTexts.clear();
       this.documentSyncs.clear();
+      this.stopEmitter.fire();
     });
 
     return this.request<InitializeResult>("initialize", {});
@@ -197,6 +200,7 @@ export class AnalyzerClient implements vscode.Disposable {
 
   dispose(): void {
     void this.stop();
+    this.stopEmitter.dispose();
   }
 
   private handleResponse(raw: unknown): void {

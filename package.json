@@ -154,6 +154,27 @@
           "default": "",
           "scope": "machine",
           "description": "Path to the wlc executable. When empty, the extension uses WL_PATH/bin/wlc."
+        },
+        "whitelanguage.diagnostics.mode": {
+          "type": "string",
+          "enum": [
+            "workspace",
+            "openFiles",
+            "visitedFiles"
+          ],
+          "enumItemLabels": [
+            "Workspace",
+            "Open Files",
+            "Visited Files"
+          ],
+          "enumDescriptions": [
+            "Scan every White Language file in the workspace and keep diagnostics up to date.",
+            "Only diagnose open files and clear their diagnostics when they close.",
+            "Diagnose files when they are opened and keep their diagnostics after they close."
+          ],
+          "default": "openFiles",
+          "scope": "window",
+          "description": "Controls which White Language files receive diagnostics."
         }
       }
     }

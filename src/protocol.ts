@@ -43,6 +43,24 @@ export interface AnalyzerSemanticToken {
   modifiers: string[];
 }
 
+export interface AnalyzerPosition {
+  line: number;
+  character: number;
+}
+
+export interface AnalyzerRange {
+  start: AnalyzerPosition;
+  end: AnalyzerPosition;
+}
+
+export interface AnalyzerDiagnostic {
+  severity: string;
+  code: string;
+  category: string;
+  message: string;
+  range: AnalyzerRange;
+}
+
 export class ProtocolError extends Error {
   constructor(
     readonly code: string,

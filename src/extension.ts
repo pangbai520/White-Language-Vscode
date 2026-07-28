@@ -2,6 +2,7 @@ import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import * as vscode from "vscode";
 import { AnalyzerClient, findAnalyzer, formatError } from "./analyzerClient";
+import { DiagnosticManager } from "./diagnostics";
 import { InitializeResult, protocolVersion } from "./protocol";
 import { registerRunner } from "./runner";
 import { SemanticTokenCache } from "./semanticTokenCache";
@@ -89,6 +90,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     output,
     () => provider.refresh(),
   );
+  const diagnostics = initialized.capabilities.diagnostics
+    ? new DiagnosticManager(analyzer, output)
+    : undefined;
 
   const synchronizeAndRefresh = async (document: vscode.TextDocument): Promise<void> => {
     if (document.languageId !== "whitelang" || document.uri.scheme !== "file") {
@@ -107,6 +111,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     provider,
     workspaceIndexer,
+    ...(diagnostics ? [diagnostics] : []),
     vscode.languages.registerDocumentSemanticTokensProvider(
       { language: "whitelang", scheme: "file" },
       provider,
@@ -172,6 +177,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   }
   provider.refresh();
+  diagnostics?.start();
   void workspaceIndexer.start().catch((error) => {
     output.appendLine(`workspace highlighting index failed: ${formatError(error)}`);
   });

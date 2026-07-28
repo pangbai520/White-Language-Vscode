@@ -68,6 +68,15 @@ test("contributes the White Language run button", () => {
   assert.equal(titleMenu.when, "editorLangId == whitelang");
 });
 
+test("offers all three diagnostic modes without changing the default behavior", () => {
+  const setting = manifest.contributes.configuration.properties[
+    "whitelanguage.diagnostics.mode"
+  ];
+  assert(setting);
+  assert.deepEqual(setting.enum, ["workspace", "openFiles", "visitedFiles"]);
+  assert.equal(setting.default, "openFiles");
+});
+
 test("loads the fallback grammar as source.whitelang", () => {
   assert.equal(grammar.scopeName, "source.whitelang");
   assert(grammar.patterns.length > 0);
