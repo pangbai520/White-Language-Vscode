@@ -75,6 +75,7 @@ test("offers all three diagnostic modes without changing the default behavior", 
   assert(setting);
   assert.deepEqual(setting.enum, ["workspace", "openFiles", "visitedFiles"]);
   assert.equal(setting.default, "openFiles");
+  assert.match(setting.enumDescriptions[0], /server/i);
 });
 
 test("loads the fallback grammar as source.whitelang", () => {

@@ -1,15 +1,13 @@
 # White Language for VS Code
 
-This extension provides syntax highlighting, syntax diagnostics, and other
-basic VS Code support for White Language. Completion is not available yet.
+This extension provides syntax highlighting, syntax diagnostics, and other basic VS Code support for White Language.
 
-Use the play button in the editor title bar to compile and run the current
-White Language file. The extension finds `wlc` through
-`whitelanguage.compiler.path` or `WL_PATH/bin/wlc`.
+The extension finds `wlc` through `whitelanguage.compiler.path` or `WL_PATH/bin/wlc`. You can use the run button in the editor title bar to compile and run the current White Language file.
 
-Diagnostics can cover the whole workspace, only open files, or files visited
-during the current session. Choose the behavior with
-`whitelanguage.diagnostics.mode`.
+Choose how reported diagnostics are displayed with
+`whitelanguage.diagnostics.mode`. 
+
+Cross-file navigation currently covers files opened during the editor session.
 
 ## Finding `wlls`
 

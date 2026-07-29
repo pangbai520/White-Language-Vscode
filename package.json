@@ -6,8 +6,12 @@
   "publisher": "whitelang-dev",
   "icon": "icon.png",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pangbai520/White-Language-Vscode.git"
+  },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.91.0"
   },
   "categories": [
     "Programming Languages"
@@ -168,7 +172,7 @@
             "Visited Files"
           ],
           "enumDescriptions": [
-            "Scan every White Language file in the workspace and keep diagnostics up to date.",
+            "Show every diagnostic reported by wlls. Unopened files require project indexing support from the server.",
             "Only diagnose open files and clear their diagnostics when they close.",
             "Diagnose files when they are opened and keep their diagnostics after they close."
           ],
@@ -181,7 +185,7 @@
   },
   "scripts": {
     "clean": "node ./scripts/clean.mjs",
-    "compile": "tsc -p .",
+    "compile": "tsc --noEmit -p . && node ./scripts/build.mjs",
     "check": "npm run compile && node --test ./test",
     "package": "npm run check && vsce package --no-dependencies"
   },
@@ -189,6 +193,10 @@
     "@types/node": "^20.14.15",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.6.2",
+    "esbuild": "^0.25.0",
     "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.0"
   }
 }

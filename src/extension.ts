@@ -1,24 +1,32 @@
-import { stat } from "node:fs/promises";
-import { join } from "node:path";
 import * as vscode from "vscode";
-import { AnalyzerClient, findAnalyzer, formatError } from "./analyzerClient";
-import { DiagnosticManager } from "./diagnostics";
-import { InitializeResult, protocolVersion } from "./protocol";
+import {
+  LanguageClient,
+  LanguageClientOptions,
+  ServerOptions,
+  State,
+  Trace,
+} from "vscode-languageclient/node";
+import { DiagnosticPolicy } from "./diagnosticPolicy";
+import { findServer, formatError } from "./server";
 import { registerRunner } from "./runner";
-import { SemanticTokenCache } from "./semanticTokenCache";
-import { WhiteSemanticTokensProvider } from "./semanticTokens";
-import { WorkspaceIndexer } from "./workspaceIndexer";
 
-let analyzer: AnalyzerClient | undefined;
+const semanticTokenDelayMs = 75;
+const documentSymbolDelayMs = 100;
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const output = vscode.window.createOutputChannel("White Language");
+let client: LanguageClient | undefined;
+
+export async function activate(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const output = vscode.window.createOutputChannel("White Language", {
+    log: true,
+  });
   context.subscriptions.push(output, registerRunner(context, output));
 
-  const executable = await findAnalyzer();
+  const executable = await findServer();
   if (!executable) {
     const action = await vscode.window.showWarningMessage(
-      "White Language semantic highlighting is unavailable because wlls was not found.",
+      "White Language language features are unavailable because wlls was not found.",
       "Open Settings",
     );
     if (action === "Open Settings") {
@@ -30,160 +38,151 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     return;
   }
 
-  const trace = vscode.workspace
-    .getConfiguration("whitelanguage")
-    .get<boolean>("server.trace", false);
-  analyzer = new AnalyzerClient(executable, output, trace);
-  context.subscriptions.push(analyzer);
-
-  let initialized: InitializeResult;
-  try {
-    initialized = await analyzer.start();
-  } catch (error) {
-    output.appendLine(`failed to start ${executable}: ${formatError(error)}`);
-    void vscode.window.showErrorMessage(
-      `White Language analyzer failed to start: ${formatError(error)}`,
-    );
-    return;
-  }
-
-  if (
-    initialized.protocol !== protocolVersion
-    || !initialized.capabilities.semanticTokens?.full
-  ) {
-    void vscode.window.showErrorMessage(
-      "The installed wlls does not support the semantic token protocol required by this extension.",
-    );
-    await analyzer.stop();
-    analyzer = undefined;
-    return;
-  }
-
-  const capability = initialized.capabilities.semanticTokens;
-  const legend = new vscode.SemanticTokensLegend(
-    capability.tokenTypes,
-    capability.tokenModifiers,
-  );
-  const serverInfo = await stat(executable);
-  const cacheNamespace = JSON.stringify({
-    schema: 1,
-    extensionVersion: context.extension.packageJSON.version,
-    serverSize: serverInfo.size,
-    serverModified: serverInfo.mtimeMs,
-    tokenTypes: capability.tokenTypes,
-    tokenModifiers: capability.tokenModifiers,
-  });
-  const cache = new SemanticTokenCache(
-    join(context.globalStorageUri.fsPath, "semantic-tokens"),
-    cacheNamespace,
-  );
-  const provider = new WhiteSemanticTokensProvider(
-    analyzer,
-    legend,
-    capability,
-    output,
-    cache,
-  );
-  const refreshTimers = new Map<string, NodeJS.Timeout>();
-  const workspaceIndexer = new WorkspaceIndexer(
-    analyzer,
-    output,
-    () => provider.refresh(),
-  );
-  const diagnostics = initialized.capabilities.diagnostics
-    ? new DiagnosticManager(analyzer, output)
-    : undefined;
-
-  const synchronizeAndRefresh = async (document: vscode.TextDocument): Promise<void> => {
-    if (document.languageId !== "whitelang" || document.uri.scheme !== "file") {
-      return;
-    }
-    try {
-      await analyzer?.synchronize(document);
-      provider.refresh();
-    } catch (error) {
-      output.appendLine(
-        `failed to synchronize ${document.uri.fsPath}: ${formatError(error)}`,
-      );
-    }
+  const diagnostics = new DiagnosticPolicy();
+  const serverOptions: ServerOptions = {
+    command: executable,
+    args: ["--stdio"],
+  };
+  const clientOptions: LanguageClientOptions = {
+    documentSelector: [{ scheme: "file", language: "whitelang" }],
+    outputChannel: output,
+    traceOutputChannel: output,
+    middleware: {
+      handleDiagnostics: (uri, items, next) => {
+        diagnostics.handle(uri, items, next);
+      },
+      didClose: async (document, next) => {
+        diagnostics.beforeDocumentClose(document.uri);
+        await next(document);
+      },
+      provideDocumentSemanticTokens: async (document, token, next) => {
+        if (
+          !(await waitForVisibleDocument(document, token, semanticTokenDelayMs))
+        ) {
+          return null;
+        }
+        return next(document, token);
+      },
+      provideDocumentSymbols: async (document, token, next) => {
+        if (
+          !(await waitForVisibleDocument(
+            document,
+            token,
+            documentSymbolDelayMs,
+          ))
+        ) {
+          return null;
+        }
+        return next(document, token);
+      },
+    },
   };
 
+  const languageClient = new LanguageClient(
+    "whitelanguage",
+    "White Language",
+    serverOptions,
+    clientOptions,
+  );
+  client = languageClient;
   context.subscriptions.push(
-    provider,
-    workspaceIndexer,
-    ...(diagnostics ? [diagnostics] : []),
-    vscode.languages.registerDocumentSemanticTokensProvider(
-      { language: "whitelang", scheme: "file" },
-      provider,
-      legend,
-    ),
-    vscode.workspace.onDidOpenTextDocument((document) => {
-      void synchronizeAndRefresh(document);
-    }),
-    vscode.workspace.onDidChangeTextDocument((event) => {
-      if (event.document.languageId !== "whitelang" || event.document.uri.scheme !== "file") {
-        return;
+    diagnostics,
+    languageClient.onDidChangeState((event) => {
+      if (event.newState === State.Stopped) {
+        diagnostics.reset();
       }
-
-      const key = event.document.uri.toString();
-      const previous = refreshTimers.get(key);
-      if (previous) {
-        clearTimeout(previous);
-      }
-      refreshTimers.set(key, setTimeout(() => {
-        refreshTimers.delete(key);
-        void synchronizeAndRefresh(event.document);
-      }, 300));
     }),
-    vscode.workspace.onDidCloseTextDocument((document) => {
-      if (document.languageId === "whitelang") {
-        const key = document.uri.toString();
-        const timer = refreshTimers.get(key);
-        if (timer) {
-          clearTimeout(timer);
-          refreshTimers.delete(key);
-        }
-        void workspaceIndexer.restoreAfterClose(document).catch((error) => {
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("whitelanguage.server.trace")) {
+        void updateTrace(languageClient).catch((error) => {
           output.appendLine(
-            `failed to close ${document.uri.fsPath}: ${formatError(error)}`,
+            `failed to update protocol tracing: ${formatError(error)}`,
           );
         });
       }
+      if (event.affectsConfiguration("whitelanguage.server.path")) {
+        void vscode.window
+          .showInformationMessage(
+            "Reload VS Code to use the new White Language language server path.",
+            "Reload",
+          )
+          .then((action) => {
+            if (action === "Reload") {
+              void vscode.commands.executeCommand(
+                "workbench.action.reloadWindow",
+              );
+            }
+          });
+      }
     }),
-    vscode.window.onDidChangeActiveColorTheme(() => {
-      provider.refresh();
-    }),
-    {
-      dispose: () => {
-        for (const timer of refreshTimers.values()) {
-          clearTimeout(timer);
-        }
-        refreshTimers.clear();
-      },
-    },
   );
 
-  output.appendLine(`semantic highlighting ready (${executable})`);
-
-  for (const document of vscode.workspace.textDocuments) {
-    if (document.languageId === "whitelang" && document.uri.scheme === "file") {
-      try {
-        await analyzer.synchronize(document);
-      } catch (error) {
-        output.appendLine(
-          `failed to synchronize ${document.uri.fsPath}: ${formatError(error)}`,
-        );
-      }
+  try {
+    await languageClient.start();
+    await updateTrace(languageClient);
+  } catch (error) {
+    output.appendLine(`failed to start ${executable}: ${formatError(error)}`);
+    void vscode.window.showErrorMessage(
+      `White Language language server failed to start: ${formatError(error)}`,
+    );
+    await languageClient.stop().catch(() => undefined);
+    if (client === languageClient) {
+      client = undefined;
     }
+    return;
   }
-  provider.refresh();
-  diagnostics?.start();
-  void workspaceIndexer.start().catch((error) => {
-    output.appendLine(`workspace highlighting index failed: ${formatError(error)}`);
-  });
+
+  output.appendLine(`White Language language server ready (${executable})`);
 }
 
 export async function deactivate(): Promise<void> {
-  await analyzer?.stop();
-  analyzer = undefined;
+  const running = client;
+  client = undefined;
+  await running?.stop();
+}
+
+async function updateTrace(languageClient: LanguageClient): Promise<void> {
+  const enabled = vscode.workspace
+    .getConfiguration("whitelanguage")
+    .get<boolean>("server.trace", false);
+  await languageClient.setTrace(enabled ? Trace.Verbose : Trace.Off);
+}
+
+function waitForVisibleDocument(
+  document: vscode.TextDocument,
+  token: vscode.CancellationToken,
+  delayMs: number,
+): Promise<boolean> {
+  if (token.isCancellationRequested) {
+    return Promise.resolve(false);
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let timer: NodeJS.Timeout | undefined;
+    let cancellation: vscode.Disposable | undefined;
+    const finish = (value: boolean): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timer) {
+        clearTimeout(timer);
+      }
+      cancellation?.dispose();
+      resolve(value);
+    };
+    timer = setTimeout(() => {
+      finish(
+        vscode.window.visibleTextEditors.some(
+          (editor) =>
+            editor.document.uri.toString() === document.uri.toString(),
+        ),
+      );
+    }, delayMs);
+    cancellation = token.onCancellationRequested(() => finish(false));
+    if (token.isCancellationRequested) {
+      finish(false);
+    }
+  });
 }
