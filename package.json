@@ -4,7 +4,7 @@
   "description": "VSCode Extension for White Language, powered by wlls.",
   "version": "0.0.1",
   "publisher": "whitelang-dev",
-  "icon": "icon.png",
+  "icon": "./resources/icon.png",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
