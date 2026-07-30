@@ -55,7 +55,8 @@ test("installs the latest tagged wlls release without a shell", () => {
   assert.match(installer, /"refs\/tags\/v\*"/);
   assert.match(installer, /"--depth",\s*"1"/);
   assert.match(installer, /"--branch",\s*tag/);
-  assert.match(installer, /\[join\(sourceDirectory,\s*"wlls\.wl"\),\s*"-o"/);
+  assert.match(installer, /const compilerOutput = join\("\.\.", executableName\)/);
+  assert.match(installer, /\["wlls\.wl",\s*"-o",\s*compilerOutput\]/);
   assert.match(installer, /shell:\s*false/);
   assert.match(installer, /recursive:\s*true,\s*force:\s*true/);
   assert.match(installer, /tools",\s*"wlls",\s*"bin"/);

@@ -138,10 +138,11 @@ async function installLatestServerOnce(
         const executableName =
           process.platform === "win32" ? "wlls.exe" : "wlls";
         const builtExecutable = join(stagingDirectory, executableName);
+        const compilerOutput = join("..", executableName);
         progress.report({ message: `Building wlls ${tag}…` });
         await runChecked(
           compiler,
-          [join(sourceDirectory, "wlls.wl"), "-o", builtExecutable],
+          ["wlls.wl", "-o", compilerOutput],
           output,
           token,
           sourceDirectory,
