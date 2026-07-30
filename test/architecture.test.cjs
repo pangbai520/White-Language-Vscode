@@ -6,6 +6,11 @@ const { resolve } = require("node:path");
 const root = resolve(__dirname, "..");
 const extension = readFileSync(resolve(root, "src", "extension.ts"), "utf8");
 const server = readFileSync(resolve(root, "src", "server.ts"), "utf8");
+const installer = readFileSync(
+  resolve(root, "src", "serverInstaller.ts"),
+  "utf8",
+);
+const compiler = readFileSync(resolve(root, "src", "compiler.ts"), "utf8");
 const diagnosticPolicy = readFileSync(
   resolve(root, "src", "diagnosticPolicy.ts"),
   "utf8",
@@ -33,9 +38,31 @@ test("passes a validated White Language root to wlls", () => {
   assert.match(extension, /findWhiteLanguageRoot\(executable\)/);
   assert.match(extension, /options:\s*\{[\s\S]*env:\s*\{/);
   assert.match(extension, /WL_PATH:\s*wlPath/);
-  assert.match(server, /dirname\(dirname\(executable\)\)/);
+  assert.match(server, /managedServerPath/);
+  assert.match(server, /depth < 6/);
   assert.match(server, /stat\(join\(path,\s*"std"\)\)/);
   assert.match(server, /stat\(join\(path,\s*"runtime"\)\)/);
+});
+
+test("installs the latest tagged wlls release without a shell", () => {
+  assert.match(extension, /installLatestServer/);
+  assert.doesNotMatch(extension, /"Install wlls"/);
+  assert.match(
+    installer,
+    /https:\/\/github\.com\/pangbai520\/White-Language-LangServer\.git/,
+  );
+  assert.match(installer, /"ls-remote"/);
+  assert.match(installer, /"refs\/tags\/v\*"/);
+  assert.match(installer, /"--depth",\s*"1"/);
+  assert.match(installer, /"--branch",\s*tag/);
+  assert.match(installer, /\[join\(sourceDirectory,\s*"wlls\.wl"\),\s*"-o"/);
+  assert.match(installer, /shell:\s*false/);
+  assert.match(installer, /recursive:\s*true,\s*force:\s*true/);
+  assert.match(installer, /tools",\s*"wlls",\s*"bin"/);
+  assert.match(
+    compiler,
+    /getConfiguration\("whitelanguage"\)[\s\S]*"compiler\.path"/,
+  );
 });
 
 test("preserves cached diagnostics only in non-open-file modes", () => {

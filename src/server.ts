@@ -1,6 +1,7 @@
 import { stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import * as vscode from "vscode";
+import { findCompiler } from "./compiler";
 import { isExecutableFile, resolveConfiguredPath } from "./executable";
 
 export async function findServer(): Promise<string | undefined> {
@@ -18,6 +19,16 @@ export async function findServer(): Promise<string | undefined> {
   const wlPath = process.env.WL_PATH;
   if (wlPath) {
     candidates.push(join(wlPath, "bin", executableName));
+    candidates.push(managedServerPath(resolve(wlPath)));
+  }
+
+  const compiler = await findCompiler();
+  if (compiler) {
+    const compilerRoot = await findWhiteLanguageRoot(compiler);
+    if (compilerRoot) {
+      candidates.push(join(compilerRoot, "bin", executableName));
+      candidates.push(managedServerPath(compilerRoot));
+    }
   }
 
   for (const candidate of new Set(candidates)) {
@@ -31,9 +42,16 @@ export async function findServer(): Promise<string | undefined> {
 export async function findWhiteLanguageRoot(
   executable: string,
 ): Promise<string | undefined> {
-  const derived = dirname(dirname(executable));
-  if (await isWhiteLanguageRoot(derived)) {
-    return derived;
+  let candidate = dirname(executable);
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (await isWhiteLanguageRoot(candidate)) {
+      return candidate;
+    }
+    const parent = dirname(candidate);
+    if (parent === candidate) {
+      break;
+    }
+    candidate = parent;
   }
 
   const configured = process.env.WL_PATH?.trim();
@@ -44,6 +62,11 @@ export async function findWhiteLanguageRoot(
     }
   }
   return undefined;
+}
+
+export function managedServerPath(wlPath: string): string {
+  const executableName = process.platform === "win32" ? "wlls.exe" : "wlls";
+  return join(wlPath, "tools", "wlls", "bin", executableName);
 }
 
 export function formatError(error: unknown): string {

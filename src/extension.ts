@@ -8,6 +8,7 @@ import {
 } from "vscode-languageclient/node";
 import { DiagnosticPolicy } from "./diagnosticPolicy";
 import { findServer, findWhiteLanguageRoot, formatError } from "./server";
+import { installLatestServer } from "./serverInstaller";
 import { registerRunner } from "./runner";
 
 let client: LanguageClient | undefined;
@@ -20,19 +21,12 @@ export async function activate(
   });
   context.subscriptions.push(output, registerRunner(context, output));
 
-  const executable = await findServer();
+  let executable = await findServer();
   if (!executable) {
-    const action = await vscode.window.showWarningMessage(
-      "White Language language features are unavailable because wlls was not found.",
-      "Open Settings",
-    );
-    if (action === "Open Settings") {
-      await vscode.commands.executeCommand(
-        "workbench.action.openSettings",
-        "whitelanguage.server.path",
-      );
+    executable = await installLatestServer(output);
+    if (!executable) {
+      return;
     }
-    return;
   }
 
   const wlPath = await findWhiteLanguageRoot(executable);

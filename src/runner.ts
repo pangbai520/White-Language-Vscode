@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 import * as vscode from "vscode";
-import { isExecutableFile, resolveConfiguredPath } from "./executable";
+import { findCompiler } from "./compiler";
 
 const activeCompilations = new Set<string>();
 
@@ -146,29 +146,6 @@ function createTask(
     focus: !clear,
   };
   return task;
-}
-
-async function findCompiler(): Promise<string | undefined> {
-  const configured = vscode.workspace
-    .getConfiguration("whitelanguage")
-    .get<string>("compiler.path", "")
-    .trim();
-  const executableName = process.platform === "win32" ? "wlc.exe" : "wlc";
-  const candidates: string[] = [];
-
-  if (configured) {
-    candidates.push(resolveConfiguredPath(configured));
-  }
-  if (process.env.WL_PATH) {
-    candidates.push(join(process.env.WL_PATH, "bin", executableName));
-  }
-
-  for (const candidate of new Set(candidates)) {
-    if (await isExecutableFile(candidate)) {
-      return candidate;
-    }
-  }
-  return undefined;
 }
 
 function executeAndWait(task: vscode.Task): Promise<number | undefined> {
