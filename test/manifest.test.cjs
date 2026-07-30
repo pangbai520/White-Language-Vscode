@@ -12,7 +12,7 @@ const grammar = JSON.parse(
 test("uses the marketplace identity and bundled icons", () => {
   assert.equal(manifest.version, "0.0.1");
   assert.equal(manifest.publisher, "whitelang-dev");
-  assert.equal(manifest.icon, "icon.png");
+  assert.equal(manifest.icon, "./resources/icon.png");
 
   const language = manifest.contributes.languages.find(
     (entry) => entry.id === "whitelang",

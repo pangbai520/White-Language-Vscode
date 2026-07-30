@@ -7,11 +7,8 @@ import {
   Trace,
 } from "vscode-languageclient/node";
 import { DiagnosticPolicy } from "./diagnosticPolicy";
-import { findServer, formatError } from "./server";
+import { findServer, findWhiteLanguageRoot, formatError } from "./server";
 import { registerRunner } from "./runner";
-
-const semanticTokenDelayMs = 75;
-const documentSymbolDelayMs = 100;
 
 let client: LanguageClient | undefined;
 
@@ -38,10 +35,24 @@ export async function activate(
     return;
   }
 
+  const wlPath = await findWhiteLanguageRoot(executable);
+  if (!wlPath) {
+    void vscode.window.showErrorMessage(
+      "White Language language features are unavailable because the installation root could not be found. Set WL_PATH to a directory containing std and runtime.",
+    );
+    return;
+  }
+
   const diagnostics = new DiagnosticPolicy();
   const serverOptions: ServerOptions = {
     command: executable,
     args: ["--stdio"],
+    options: {
+      env: {
+        ...process.env,
+        WL_PATH: wlPath,
+      },
+    },
   };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "whitelang" }],
@@ -54,26 +65,6 @@ export async function activate(
       didClose: async (document, next) => {
         diagnostics.beforeDocumentClose(document.uri);
         await next(document);
-      },
-      provideDocumentSemanticTokens: async (document, token, next) => {
-        if (
-          !(await waitForVisibleDocument(document, token, semanticTokenDelayMs))
-        ) {
-          return null;
-        }
-        return next(document, token);
-      },
-      provideDocumentSymbols: async (document, token, next) => {
-        if (
-          !(await waitForVisibleDocument(
-            document,
-            token,
-            documentSymbolDelayMs,
-          ))
-        ) {
-          return null;
-        }
-        return next(document, token);
       },
     },
   };
@@ -133,6 +124,7 @@ export async function activate(
   }
 
   output.appendLine(`White Language language server ready (${executable})`);
+  output.appendLine(`WL_PATH: ${wlPath}`);
 }
 
 export async function deactivate(): Promise<void> {
@@ -146,43 +138,4 @@ async function updateTrace(languageClient: LanguageClient): Promise<void> {
     .getConfiguration("whitelanguage")
     .get<boolean>("server.trace", false);
   await languageClient.setTrace(enabled ? Trace.Verbose : Trace.Off);
-}
-
-function waitForVisibleDocument(
-  document: vscode.TextDocument,
-  token: vscode.CancellationToken,
-  delayMs: number,
-): Promise<boolean> {
-  if (token.isCancellationRequested) {
-    return Promise.resolve(false);
-  }
-
-  return new Promise((resolve) => {
-    let settled = false;
-    let timer: NodeJS.Timeout | undefined;
-    let cancellation: vscode.Disposable | undefined;
-    const finish = (value: boolean): void => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      if (timer) {
-        clearTimeout(timer);
-      }
-      cancellation?.dispose();
-      resolve(value);
-    };
-    timer = setTimeout(() => {
-      finish(
-        vscode.window.visibleTextEditors.some(
-          (editor) =>
-            editor.document.uri.toString() === document.uri.toString(),
-        ),
-      );
-    }, delayMs);
-    cancellation = token.onCancellationRequested(() => finish(false));
-    if (token.isCancellationRequested) {
-      finish(false);
-    }
-  });
 }
