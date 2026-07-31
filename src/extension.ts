@@ -23,7 +23,19 @@ export async function activate(
 
   let executable = await findServer();
   if (!executable) {
-    executable = await installLatestServer(output);
+    const action = await vscode.window.showWarningMessage(
+      "White Language language server was not found. Install the latest wlls release now?",
+      "Install wlls",
+      "Open Settings",
+    );
+    if (action === "Install wlls") {
+      executable = await installLatestServer(output);
+    } else if (action === "Open Settings") {
+      await vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        "whitelanguage.server.path",
+      );
+    }
     if (!executable) {
       return;
     }

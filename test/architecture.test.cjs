@@ -46,7 +46,7 @@ test("passes a validated White Language root to wlls", () => {
 
 test("installs the latest tagged wlls release without a shell", () => {
   assert.match(extension, /installLatestServer/);
-  assert.doesNotMatch(extension, /"Install wlls"/);
+  assert.match(extension, /"Install wlls"/);
   assert.match(
     installer,
     /https:\/\/github\.com\/pangbai520\/White-Language-LangServer\.git/,
@@ -58,6 +58,8 @@ test("installs the latest tagged wlls release without a shell", () => {
   assert.match(installer, /const compilerOutput = join\("\.\.", executableName\)/);
   assert.match(installer, /\["wlls\.wl",\s*"-o",\s*compilerOutput\]/);
   assert.match(installer, /shell:\s*false/);
+  assert.match(installer, /createStagingDirectory/);
+  assert.match(installer, /"Retry"/);
   assert.match(installer, /recursive:\s*true,\s*force:\s*true/);
   assert.match(installer, /tools",\s*"wlls",\s*"bin"/);
   assert.match(

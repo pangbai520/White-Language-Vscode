@@ -14,10 +14,7 @@ import { spawn } from "node:child_process";
 import * as vscode from "vscode";
 import { findCompiler } from "./compiler";
 import { latestReleaseTag } from "./releaseTags";
-import {
-  findWhiteLanguageRoot,
-  managedServerPath,
-} from "./server";
+import { findWhiteLanguageRoot, managedServerPath } from "./server";
 
 const repository =
   "https://github.com/pangbai520/White-Language-LangServer.git";
@@ -81,7 +78,8 @@ async function installLatestServerOnce(
     return undefined;
   }
 
-  return vscode.window.withProgress(
+  let failureMessage: string | undefined;
+  const installed = await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
       title: "Installing White Language language server",
@@ -95,13 +93,7 @@ async function installLatestServerOnce(
         progress.report({ message: "Finding the latest release…" });
         const refs = await runChecked(
           "git",
-          [
-            "ls-remote",
-            "--tags",
-            "--refs",
-            repository,
-            "refs/tags/v*",
-          ],
+          ["ls-remote", "--tags", "--refs", repository, "refs/tags/v*"],
           output,
           token,
           undefined,
@@ -112,9 +104,8 @@ async function installLatestServerOnce(
           throw new Error("The wlls repository has no valid v* release tag.");
         }
 
-        stagingDirectory = await mkdtemp(
-          join(tmpdir(), "whitelanguage-wlls-"),
-        );
+        stagingDirectory = await createStagingDirectory();
+        output.appendLine(`wlls build directory: ${stagingDirectory}`);
         const sourceDirectory = join(stagingDirectory, "source");
         progress.report({ message: `Downloading wlls ${tag}…` });
         await runChecked(
@@ -193,11 +184,8 @@ async function installLatestServerOnce(
           output.appendLine("wlls installation cancelled");
           return undefined;
         }
-        const message = error instanceof Error ? error.message : String(error);
-        output.appendLine(`wlls installation failed: ${message}`);
-        void vscode.window.showErrorMessage(
-          `Failed to install White Language language server: ${message}`,
-        );
+        failureMessage = error instanceof Error ? error.message : String(error);
+        output.appendLine(`wlls installation failed: ${failureMessage}`);
         return undefined;
       } finally {
         if (stagedInstall) {
@@ -214,6 +202,65 @@ async function installLatestServerOnce(
         }
       }
     },
+  );
+
+  if (installed) {
+    return installed;
+  }
+  if (!failureMessage) {
+    return undefined;
+  }
+
+  const action = await vscode.window.showErrorMessage(
+    `Failed to install White Language language server: ${failureMessage}`,
+    "Retry",
+    "Show Log",
+  );
+  if (action === "Retry") {
+    return installLatestServerOnce(output);
+  }
+  if (action === "Show Log") {
+    output.show(true);
+  }
+  return undefined;
+}
+
+async function createStagingDirectory(): Promise<string> {
+  const candidates =
+    process.platform === "win32"
+      ? [
+          tmpdir(),
+          process.env.ProgramData
+            ? join(process.env.ProgramData, "WhiteLanguage", "Temp")
+            : undefined,
+          process.env.PUBLIC
+            ? join(process.env.PUBLIC, "Documents", "WhiteLanguage", "Temp")
+            : undefined,
+          process.env.SystemRoot
+            ? join(process.env.SystemRoot, "Temp", "WhiteLanguage")
+            : undefined,
+        ]
+      : [tmpdir()];
+
+  let lastError: unknown;
+  for (const candidate of new Set(candidates)) {
+    if (!candidate) {
+      continue;
+    }
+    if (process.platform === "win32" && !/^[\u0000-\u007f]+$/.test(candidate)) {
+      continue;
+    }
+    try {
+      await mkdir(candidate, { recursive: true });
+      return await mkdtemp(join(candidate, "whitelanguage-wlls-"));
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const detail = lastError instanceof Error ? `: ${lastError.message}` : "";
+  throw new Error(
+    `Could not create an ASCII-only temporary directory for wlc${detail}`,
   );
 }
 
