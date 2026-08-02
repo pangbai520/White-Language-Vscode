@@ -11,18 +11,24 @@ const installer = readFileSync(
   "utf8",
 );
 const compiler = readFileSync(resolve(root, "src", "compiler.ts"), "utf8");
+const runner = readFileSync(resolve(root, "src", "runner.ts"), "utf8");
 const diagnosticPolicy = readFileSync(
   resolve(root, "src", "diagnosticPolicy.ts"),
   "utf8",
 );
-const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+const manifest = JSON.parse(
+  readFileSync(resolve(root, "package.json"), "utf8"),
+);
 const vscodeIgnore = readFileSync(resolve(root, ".vscodeignore"), "utf8");
 
 test("uses one standard LSP document lifecycle", () => {
   assert.match(extension, /new LanguageClient/);
   assert.doesNotMatch(extension, /openTextDocument|findFiles/);
   assert.doesNotMatch(extension, /sendNotification/);
-  assert.doesNotMatch(extension, /textDocument\/(?:didOpen|didChange|didClose)/);
+  assert.doesNotMatch(
+    extension,
+    /textDocument\/(?:didOpen|didChange|didClose)/,
+  );
 });
 
 test("passes semantic and outline requests directly to the LSP client", () => {
@@ -55,7 +61,10 @@ test("installs the latest tagged wlls release without a shell", () => {
   assert.match(installer, /"refs\/tags\/v\*"/);
   assert.match(installer, /"--depth",\s*"1"/);
   assert.match(installer, /"--branch",\s*tag/);
-  assert.match(installer, /const compilerOutput = join\("\.\.", executableName\)/);
+  assert.match(
+    installer,
+    /const compilerOutput = join\("\.\.", executableName\)/,
+  );
   assert.match(installer, /\["wlls\.wl",\s*"-o",\s*compilerOutput\]/);
   assert.match(installer, /shell:\s*false/);
   assert.match(installer, /createStagingDirectory/);
@@ -78,4 +87,10 @@ test("bundles the language client without shipping build artifacts", () => {
   assert.match(manifest.scripts.compile, /scripts\/build\.mjs/);
   assert.match(vscodeIgnore, /node_modules\/\*\*/);
   assert.match(vscodeIgnore, /out\/\*\*\/\*\.map/);
+});
+
+test("removes temporary run executables", () => {
+  assert.match(runner, /cleanupRunDirectory\(context, output\)/);
+  assert.match(runner, /rm\(runDirectory,[\s\S]*recursive:\s*true/);
+  assert.match(runner, /finally\s*\{[\s\S]*removeRunArtifact\(executable\)/);
 });

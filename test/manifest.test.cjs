@@ -4,7 +4,9 @@ const { readFileSync } = require("node:fs");
 const { resolve } = require("node:path");
 
 const root = resolve(__dirname, "..");
-const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+const manifest = JSON.parse(
+  readFileSync(resolve(root, "package.json"), "utf8"),
+);
 const grammar = JSON.parse(
   readFileSync(resolve(root, "syntaxes", "whitelang.tmLanguage.json"), "utf8"),
 );
@@ -101,9 +103,10 @@ test("contributes the White Language run button", () => {
 });
 
 test("offers all three diagnostic modes without changing the default behavior", () => {
-  const setting = manifest.contributes.configuration.properties[
-    "whitelanguage.diagnostics.mode"
-  ];
+  const setting =
+    manifest.contributes.configuration.properties[
+      "whitelanguage.diagnostics.mode"
+    ];
   assert(setting);
   assert.deepEqual(setting.enum, ["workspace", "openFiles", "visitedFiles"]);
   assert.equal(setting.default, "openFiles");

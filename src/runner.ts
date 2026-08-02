@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 import * as vscode from "vscode";
 import { findCompiler } from "./compiler";
@@ -10,8 +10,10 @@ export function registerRunner(
   context: vscode.ExtensionContext,
   output: vscode.OutputChannel,
 ): vscode.Disposable {
+  const initialCleanup = cleanupRunDirectory(context, output);
   return vscode.commands.registerCommand("whitelanguage.runFile", async () => {
     try {
+      await initialCleanup;
       await runActiveFile(context, output);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -69,6 +71,7 @@ async function runActiveFile(
   }
 
   activeCompilations.add(sourceKey);
+  let executable: string | undefined;
   try {
     const runDirectory = join(context.globalStorageUri.fsPath, "run");
     await mkdir(runDirectory, { recursive: true });
@@ -81,7 +84,8 @@ async function runActiveFile(
       process.platform === "win32"
         ? `${sourceName}-${sourceId}.exe`
         : `${sourceName}-${sourceId}`;
-    const executable = join(runDirectory, executableName);
+    executable = join(runDirectory, executableName);
+    await removeRunArtifact(executable);
     const scope =
       vscode.workspace.getWorkspaceFolder(editor.document.uri) ??
       vscode.TaskScope.Global;
@@ -116,7 +120,51 @@ async function runActiveFile(
     await executeAndWait(runTask);
   } finally {
     activeCompilations.delete(sourceKey);
+    if (executable) {
+      await removeRunArtifact(executable).catch((error: unknown) => {
+        output.appendLine(
+          `failed to remove run artifact ${executable}: ${formatError(error)}`,
+        );
+      });
+    }
   }
+}
+
+async function cleanupRunDirectory(
+  context: vscode.ExtensionContext,
+  output: vscode.OutputChannel,
+): Promise<void> {
+  const runDirectory = join(context.globalStorageUri.fsPath, "run");
+  await rm(runDirectory, {
+    recursive: true,
+    force: true,
+    maxRetries: 3,
+    retryDelay: 50,
+  }).catch((error: unknown) => {
+    output.appendLine(
+      `failed to clean run directory ${runDirectory}: ${formatError(error)}`,
+    );
+  });
+}
+
+async function removeRunArtifact(path: string): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      await rm(path, { force: true });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function createTask(
