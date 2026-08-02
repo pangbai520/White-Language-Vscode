@@ -1,6 +1,6 @@
 {
   "name": "white-language-vscode",
-  "displayName": "White",
+  "displayName": "White Lang",
   "description": "VSCode Extension for White Language, powered by wlls.",
   "version": "0.0.1",
   "publisher": "whitelang-dev",
