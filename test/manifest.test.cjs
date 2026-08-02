@@ -32,6 +32,7 @@ test("registers .wl and the semantic token scope mappings", () => {
 
   const mappings = manifest.contributes.semanticTokenScopes[0].scopes;
   for (const tokenType of [
+    "namespace",
     "keyword",
     "type",
     "class",
@@ -48,9 +49,40 @@ test("registers .wl and the semantic token scope mappings", () => {
     "number",
     "comment",
     "operator",
+    "decorator",
     "annotation",
   ]) {
     assert(mappings[tokenType], `missing scope mapping for ${tokenType}`);
+  }
+
+  for (const tokenType of [
+    "namespace",
+    "type",
+    "class",
+    "struct",
+    "interface",
+    "enum",
+    "enumMember",
+    "function",
+    "method",
+    "parameter",
+    "variable",
+    "property",
+    "decorator",
+  ]) {
+    assert.deepEqual(
+      mappings[`${tokenType}.defaultLibrary`],
+      mappings[tokenType],
+      `standard-library ${tokenType} should keep its normal scope`,
+    );
+  }
+
+  for (const tokenType of ["variable", "property"]) {
+    assert.deepEqual(
+      mappings[`${tokenType}.readonly.defaultLibrary`],
+      mappings[`${tokenType}.readonly`],
+      `standard-library readonly ${tokenType} should keep its normal scope`,
+    );
   }
 });
 
@@ -81,4 +113,8 @@ test("offers all three diagnostic modes without changing the default behavior", 
 test("loads the fallback grammar as source.whitelang", () => {
   assert.equal(grammar.scopeName, "source.whitelang");
   assert(grammar.patterns.length > 0);
+
+  const keywordPattern = grammar.repository.keywords.match;
+  assert.match("error", new RegExp(keywordPattern));
+  assert.doesNotMatch("type", new RegExp(keywordPattern));
 });

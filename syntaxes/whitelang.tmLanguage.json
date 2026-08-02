@@ -106,7 +106,7 @@
     },
     "keywords": {
       "name": "keyword.control.whitelang",
-      "match": "\\b(?:let|const|if|else|while|for|break|continue|func|method|return|struct|class|interface|enum|with|this|self|super|ptr|ref|deref|null|nullptr|is|extern|from|import|as|catch|throw|in|true|false)\\b"
+      "match": "\\b(?:let|const|if|else|while|for|break|continue|func|method|return|struct|class|interface|enum|error|with|this|self|super|ptr|ref|deref|null|nullptr|is|extern|from|import|as|catch|throw|in|true|false)\\b"
     },
     "types": {
       "name": "support.type.whitelang",

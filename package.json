@@ -1,6 +1,6 @@
 {
   "name": "white-language-vscode",
-  "displayName": "White Language",
+  "displayName": "White",
   "description": "VSCode Extension for White Language, powered by wlls.",
   "version": "0.0.1",
   "publisher": "whitelang-dev",
@@ -19,7 +19,8 @@
   "keywords": [
     "white",
     "whitelang",
-    "whitelanguage"
+    "whitelanguage",
+    "wl"
   ],
   "main": "./out/extension.js",
   "activationEvents": [
@@ -72,41 +73,92 @@
       {
         "language": "whitelang",
         "scopes": {
+          "namespace": [
+            "entity.name.namespace.whitelang"
+          ],
+          "namespace.defaultLibrary": [
+            "entity.name.namespace.whitelang"
+          ],
           "keyword": [
             "keyword.control.whitelang"
           ],
           "type": [
             "support.type.whitelang"
           ],
+          "type.defaultLibrary": [
+            "support.type.whitelang"
+          ],
           "class": [
+            "entity.name.type.class.whitelang"
+          ],
+          "class.defaultLibrary": [
             "entity.name.type.class.whitelang"
           ],
           "struct": [
             "entity.name.type.struct.whitelang"
           ],
+          "struct.defaultLibrary": [
+            "entity.name.type.struct.whitelang"
+          ],
           "interface": [
+            "entity.name.type.interface.whitelang"
+          ],
+          "interface.defaultLibrary": [
             "entity.name.type.interface.whitelang"
           ],
           "enum": [
             "entity.name.type.enum.whitelang"
           ],
+          "enum.defaultLibrary": [
+            "entity.name.type.enum.whitelang"
+          ],
           "enumMember": [
+            "constant.other.enum.whitelang"
+          ],
+          "enumMember.defaultLibrary": [
             "constant.other.enum.whitelang"
           ],
           "function": [
             "entity.name.function.whitelang"
           ],
+          "function.defaultLibrary": [
+            "entity.name.function.whitelang"
+          ],
           "method": [
+            "entity.name.function.member.whitelang"
+          ],
+          "method.defaultLibrary": [
             "entity.name.function.member.whitelang"
           ],
           "parameter": [
             "variable.parameter.whitelang"
           ],
+          "parameter.defaultLibrary": [
+            "variable.parameter.whitelang"
+          ],
           "variable": [
             "variable.other.whitelang"
           ],
+          "variable.readonly": [
+            "variable.other.constant.whitelang"
+          ],
+          "variable.defaultLibrary": [
+            "variable.other.whitelang"
+          ],
+          "variable.readonly.defaultLibrary": [
+            "variable.other.constant.whitelang"
+          ],
           "property": [
             "variable.other.property.whitelang"
+          ],
+          "property.readonly": [
+            "variable.other.constant.property.whitelang"
+          ],
+          "property.defaultLibrary": [
+            "variable.other.property.whitelang"
+          ],
+          "property.readonly.defaultLibrary": [
+            "variable.other.constant.property.whitelang"
           ],
           "string": [
             "string.quoted.whitelang"
@@ -119,6 +171,12 @@
           ],
           "operator": [
             "keyword.operator.whitelang"
+          ],
+          "decorator": [
+            "entity.name.tag.annotation.whitelang"
+          ],
+          "decorator.defaultLibrary": [
+            "entity.name.tag.annotation.whitelang"
           ],
           "annotation": [
             "entity.name.tag.annotation.whitelang"
